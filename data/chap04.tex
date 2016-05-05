@@ -1,0 +1,141 @@
+\chapter{ASPCA模型}
+
+之前所提出了ASPCA-F与ASPCA-B本身并不能很好的被优化，需要对条件进行一些放松。我们所做的放松处理是参考自SPCA算法的处理\cite{SPCA-SDP}。而在求得ASPCA-F与ASPCA-G的解后，我们还尝试了从整体角度再对之前逐步求解的结果进行一次优化。最后的这一步优化是通过保证新得到的基向量所张成的空间与之前所求解的异常子空间一致，以稀疏性为目标的一个优化，计算过程受到 \cite{SPCA-2006}启发，通过交替最小化求解。
+
+\section{求解ASPCA-F}
+
+我们首先将表达式~\ref{equation:typical_MSPCA-F} 中的优化目标转化为一个SDP形式的优化目标。
+
+当求解第$i$个基向量时，之前已经求出的基向量组成一个矩阵 ${\bf V}_{i-1} = ({\bf v}_1, {\bf v}_2, ... ,{\bf v}_{i-1})$，则正交约束条件可以表示为 ${\bf V}_{i-1}^T{\bf v}_i={\bf 0}$ 也即 $||{\bf V}_{i-1}^T{\bf v}_i||_2=0$。
+
+定义 ${\bf v}_i{\bf v}_i^T={\bf X}$，定义${\bf R}_{i-1} = {\bf V}_{i-1}{\bf V}_{i-1}^T$。可以将原本的优化目标与约束转化成用${\bf X}_i$来表示。例如优化目标可以转化为：
+
+\begin{equation*}
+\begin{split}
+{\bf v}_i^T{\bf A}{\bf v}_i & = Tr({\bf v}_i^T{\bf A}{\bf v}_i)\\
+& = Tr({\bf A}{\bf v}_i{\bf v}_i^T)\\
+& =Tr({\bf A}{\bf X}_i)
+\end{split}
+\end{equation*}
+
+该转换合法的原因是计算矩阵的迹时，矩阵满足交换律，即$Tr(\bf{AB})=Tr(\bf{BA})$。因为矩阵的迹是$A$与$B^T$中同行同列元素相乘求和的结果，交换后$A^T$与$B$同行同列的元素任然相同，求和结果不变。
+
+各个限制条件可以转化为：
+\begin{equation*}
+	\begin{split}
+		{\bf v}_i^T{\bf v}_i &=Tr({\bf v}_i^T{\bf v}_i)=Tr({\bf v}_i{\bf v}_i^T) = Tr({\bf X}_i)=1\\
+		Card({\bf v}_i{\bf v}_i^T) &= Card({\bf X}_i) \leq k^2 \\
+		||{\bf V}_{i-1}^T{\bf v}_i||_2 &=({\bf V}_{i-1}^T{\bf v}_i)^T({\bf V}_{i-1}^T{\bf v}_i) \\
+		&=Tr(({\bf V}_{i-1}^T{\bf v}_i)^T({\bf V}_{i-1}^T{\bf v}_i))\\
+		& =Tr({\bf V}_{i-1}{\bf V}_{i-1}^T{\bf v}_i{\bf v}_i^T)\\
+		& =Tr({\bf R}_{i-1}{\bf X}_i)=0
+	\end{split}
+\end{equation*}
+
+其中第二项限制条件，与原本的约束条件是等价的，因为${\bf X}_i$上任意一项是${\bf v}_i$中所取的两个值的积，因此如果乘积为零，则必然是因为其中一个乘数为零，因此当少于有$k^2$个非零项时，乘数中有少于$k$个非零项，反之亦然。
+
+在以上约束下所求出的优化问题$\argmax_{{\bf X}_i \in \mathbb{S}^p}\ Tr({\bf A}{\bf X}_i)$的最优解${\bf {\hat X}}_i$ 还需要约束其为半正定矩阵，并且有$rank({\bf X})=1$，这样才能从转换后问题的最优解${\bf {\hat X}}$通过特征值分解得到表达式\ref{equation:typical_MSPCA-F}的最优解${\bf v}_i$。
+
+因此，原本的ASPCA-F优化问题从表达式\ref{equation:typical_MSPCA-F}可以等价转换到表达式\ref{equation:aspca_sdp}。
+
+
+\begin{equation}
+\label{equation:aspca_sdp}
+\begin{split}
+ & \argmax_{{\bf X}_i \in \mathbb{S}^p}\ Tr({\bf A}{\bf X}_i)\\
+ & s.t.\ {\bf X}_i\succeq0, rank({\bf X}_i)=1, \ Tr({\bf X}_i)=1, Card({\bf X}_i) < k^2\\
+\end{split}
+\end{equation}
+
+之后的转换是对原表达式条件的一些放松，不再是等价转换，我们所做的放松参照的是SPCA\cite{SPCA-SDP}中相应的处理。首先我们将稀疏性条件放松为$||{\bf X}_i||_{1,1}<k$，再将其从约束条件转移到优化目标中，通过参数$\lambda$与原本的优化目标结合。当$\lambda$越大时，结果的稀疏性更好，当其更接近零时，结果与PCA的结果更接近。另外，为了问题能够在凸规划下可解，我们直接去掉了约束条件$rank({\bf X}_i)=1$。这样就形成了最终真正求解的表达式~\ref{equation:aspca_f_sdp_final}。我们可以通过半正定规划，即SDP（Semidefinite Programming）求解该优化问题。
+
+\begin{equation}
+\label{equation:aspca_f_sdp_final}
+\begin{split}
+& \argmax_{{\bf X}_i \in \mathbb{S}^p}\ Tr({\bf A}{\bf X}_i)-\lambda ||{\bf X}_i||_{1,1}\\
+& s.t.\ {\bf X}_i\succeq0,\ Tr({\bf X}_i)=1, Tr({\bf R}_{i-1}{\bf X}_i)=0\\
+\end{split}
+\end{equation}
+
+之前提到，我们将${\bf X}_i$关于矩阵秩的约束去掉了。首先，如果没有稀疏性的目标，即普通的PCA问题求解，该条件是可以被去掉的，所求出的最优解矩阵${\bf \hat{X}}_i$可以通过特征值分解，分解为协方差矩阵${\bf A}$的第$i$个特征值的若干个互相垂直的特征向量所组成的矩阵。即还是求出了原本数据的主成分相对应的向量。而对于加入了稀疏约束后的问题，则可以选择对${\bf \hat{X}_i}$特征值分解得到的矩阵中最大特征值的特征向量作为这一步的解。
+
+\section{求解ASPCA-B}
+
+与求解ASPCA-F的优化目标，即表达式~\ref{equation:typical_MSPCA-F}类似, 我们将表达式~\ref{equation:typical_MSPCA-B}转化并最终放松到表达式~~\ref{equation:aspca_b_sdp_final}, 该优化目标同样可以通过SDP进行求解。
+\begin{equation}
+\label{equation:aspca_b_sdp_final}
+\begin{split}
+& \argmin_{{\bf X}_i \in \mathbb{S}^p}\ Tr({\bf A}{\bf X}_i)+\lambda ||{\bf X}_i||_{1,1}\\
+& s.t.\ {\bf X}_i\succeq0,\ Tr({\bf X}_i)=1, Tr({\bf R}_{i-1}{\bf X}_i)=0\\
+\end{split}
+\end{equation}
+
+\section{全局稀疏化优化}
+定义 ${\bf V}=({\bf v}_1,...,{\bf v}_d)$ 为我们通过ASPCA-F或者ASPCA-B所获取的构成异常空间的基向量。而对于该异常空间而言，可以有不同的基来描述。定义一组异常空间的新正交基${{\bf c}_1,...,{\bf c}_d}$。有：
+
+\begin{equation}
+SPE= \sum_{i=1}^{d}({\bf v}_i^T {\bf y})^2 = \sum_{i=1}^{d}({\bf c}_i^T {\bf y})^2
+\end{equation}
+
+因此我们可以在逐步求解得到异常空间后，再对异常空间全局进行优化，寻找到稀疏性更好的一组正交基，而这组正交基同样可以用来表示SPE，即也能够进行异常的检测与解释。而为了得到这组新的正交基，我们需要对原来求得的基向量组进行正交变换，变换矩阵为正交矩阵${\bf X}$，则优化目标为：
+
+\begin{equation}
+\begin{split}
+&\argmin_{{\bf X}}\ ||{\bf V}{\bf X}||_{1,1}\\
+& s.t.\ {\bf X}^T{\bf X}=I
+\end{split}
+\end{equation}
+
+定义我们所要获得的新基向量组${\bf C}={\bf V}{\bf X}$, 我们将问题转化为一个回归问题，即：
+
+\begin{equation}
+\begin{split}
+&\argmin_{{\bf X},{\bf C}}\ ||{\bf V}-{\bf C}{\bf X}^T||_F+\mu||{\bf C}||_{1,1}\\
+&s.t.\ {\bf X}^T{\bf X}={\bf I}
+\end{split}
+\label{equation:step2}
+\end{equation}
+
+
+表达式~\ref{equation:step2}所示的回归优化问题可以通过交替最小化法进行求解\cite{SPCA-2006}。初始时，我们设定 ${\bf X}$ 为单位矩阵， 设定 $\mu = ||{\bf V}||_F/||{\bf V}{\bf X}||_{1,1}$。在随后的迭代当中，我们逐渐减小$\mu$，从而确保最终所获得的${\bf C}$与之前所获得的基向量组${\bf V}$所表示的空间是相同的。
+
+通过在ASPCA-F和ASPCA-B之后增加全局优化的步骤，我们收获了两种新的算法ASPCA-FG与ASPCA-BG。算法 1 和算法 2 详细描述了整个优化过程，其中${\bf A}$是输入数据矩阵的协方差矩阵，$d$ 是所需要获取的异常子空间的维度，$max\_iter$ 是全局优化步骤中交替迭代的次数。算法最终输出的矩阵${\bf V}$ 是构成异常子空间的基向量，同时也是相应的主成分的系数向量，同时也是异常所会违背的线性关系，通过这些向量，我们可以完成异常的检测与解释。
+
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\begin{algorithm}
+\begin{algorithmic}[1]
+    \caption{Forward Abnormal Subspace Sparse PCA with Global Optimization (ASPCA-FG)}
+    \REQUIRE  ${\bf A},\ d,\ \lambda$, and $max\_iter$
+    \ENSURE ${\bf V}$
+    \FOR{$i=1$ to $p$}
+	\STATE ${\bf V}_{i-1} \gets ({\bf v}_1,{\bf v}_2...{\bf v}_{i-1})$;
+ 	\STATE ${\bf R}_{i-1} \gets {\bf V}_{i-1}{\bf V}_{i-1}^T$;
+	\STATE Optimize ${\bf v}_i$ with given ${\bf A},\ {\bf R}_{i-1}$ according to Eqn.~\ref{equation:aspca_f_sdp_final} using SDP;
+    \ENDFOR
+    \STATE ${\bf V} \gets ({\bf v}_{p-d+1},...{\bf v}_p)$;
+    \STATE Optimize ${\bf X},\ {\bf C}$ with given ${\bf V},\ max\_iter$ according to Eqn.~\ref{equation:step2} using the alternating minimization scheme;
+    \STATE ${\bf V} \gets {\bf C}{\bf X}$;
+    \RETURN ${\bf V}$;
+\end{algorithmic}
+\end{algorithm}
+
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\begin{algorithm}
+\begin{algorithmic}[1]
+    \caption{Backward Abnormal Subspace Sparse PCA with Global Optimization (ASPCA-BG)}
+    \REQUIRE  ${\bf A},\ d,\ \lambda$, and $max\_iter$
+    \ENSURE ${\bf V}$
+    \FOR{$i=1$ to $d$}
+	\STATE ${\bf V}_{i-1} \gets ({\bf v}_1,{\bf v}_2...{\bf v}_{i-1})$;
+ 	\STATE ${\bf R}_{i-1} \gets {\bf V}_{i-1}{\bf V}_{i-1}^T$;
+	\STATE Optimize ${\bf v}_i$ with given ${\bf A},\ {\bf R}_{i-1}$ according to Eqn.~\ref{equation:aspca_b_sdp_final} using SDP;
+    \ENDFOR
+    \STATE ${\bf V} \gets ({\bf v}_1,{\bf v}_2...{\bf v}_d)$;
+    \STATE Optimize ${\bf X},\ {\bf C}$ with given ${\bf V},\ max\_iter$ according to Eqn.~\ref{equation:step2} using the alternating minimization scheme;
+    \STATE ${\bf V} \gets {\bf C}{\bf X}$;
+    \RETURN ${\bf V}$;
+\end{algorithmic}
+\end{algorithm}
+

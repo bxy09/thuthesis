@@ -2,14 +2,14 @@
 
 \ProvidesFile{ctex-fontset-thuthesis.def}
 
-\setCJKmainfont[BoldFont={SimHei},ItalicFont={KaiTi}]{SimSun}
-\setCJKsansfont{SimHei}
-\setCJKmonofont{KaiTi}
-\setCJKfamilyfont{zhsong}{SimSun}
-\setCJKfamilyfont{zhhei}{SimHei}
-\setCJKfamilyfont{zhkai}{KaiTi}
-\setCJKfamilyfont{zhfs}{FangSong}
-\setCJKfamilyfont{zhli}{STLiti}
+\setCJKmainfont[BoldFont={Heiti SC},ItalicFont={Kaiti SC}]{Songti SC}
+\setCJKsansfont{Heiti SC}
+\setCJKmonofont{Kaiti SC}
+\setCJKfamilyfont{zhsong}{Songti SC}
+\setCJKfamilyfont{zhhei}{Heiti SC}
+\setCJKfamilyfont{zhkai}{Kaiti SC}
+\setCJKfamilyfont{zhfs}{.PingFang SC}
+\setCJKfamilyfont{zhli}{Baoli SC}
 \setCJKfamilyfont{zhyou}{Yuanti SC}
 
 \newcommand*{\songti}{\CJKfamily{zhsong}}

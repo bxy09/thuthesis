@@ -1,0 +1,4 @@
+#!/bin/bash
+cd $TEXPAD_ROOTFILE
+make thesis
+echo `pwd`
